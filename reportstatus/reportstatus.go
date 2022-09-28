@@ -91,7 +91,7 @@ func (s *service) ReportStatus() (common.Hash, error) {
 	bttcAddress := common.HexToAddress(lastOnline.LastSignedInfo.BttcAddress)
 	signedTime := lastOnline.LastSignedInfo.SignedTime
 	signature, err := hex.DecodeString(strings.Replace(lastOnline.LastSignature, "0x", "", -1))
-	//fmt.Printf("... ReportStatus, lastOnline = %+v \n", lastOnline)
+	fmt.Printf("... ReportStatus, lastOnline = %+v \n", lastOnline)
 
 	callData, err := statusABI.Pack("reportStatus", peer, createTime, version, nonce, bttcAddress, signedTime, signature)
 	if err != nil {
@@ -109,7 +109,7 @@ func (s *service) ReportStatus() (common.Hash, error) {
 	if err != nil {
 		return common.Hash{}, err
 	}
-	//fmt.Println("... ReportStatus, txHash, err = ", txHash, err)
+	fmt.Println("... ReportStatus over, txHash, err = ", txHash, err)
 
 	now := time.Now()
 	_, err = chain.SetReportStatusOK()
@@ -249,8 +249,8 @@ func cycleCheckReport() {
 	// Force tick on immediate start
 	// CheckReport in the for loop
 	for ; true; <-tick.C {
-		//fmt.Println("")
-		//fmt.Println("... ReportStatus, CheckReportStatus ...")
+		fmt.Println("")
+		fmt.Println("... ReportStatus, Check ...")
 
 		//report, err := chain.GetReportStatus()
 		////fmt.Printf("... ReportStatus, CheckReportStatus report: %+v err:%+v \n", report, err)
