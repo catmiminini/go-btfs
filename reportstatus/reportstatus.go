@@ -28,7 +28,7 @@ var (
 )
 
 const (
-	ReportStatusTime = 10 * time.Minute
+	ReportStatusTime = 1 * time.Minute
 	//ReportStatusTime = 60 * time.Second // 10 * time.Minute
 )
 
@@ -252,29 +252,22 @@ func cycleCheckReport() {
 		//fmt.Println("")
 		//fmt.Println("... ReportStatus, CheckReportStatus ...")
 
-		report, err := chain.GetReportStatus()
-		//fmt.Printf("... ReportStatus, CheckReportStatus report: %+v err:%+v \n", report, err)
-		if err != nil {
-			log.Errorf("GetReportStatus err:%+v", err)
-			continue
-		}
-
+		//report, err := chain.GetReportStatus()
+		////fmt.Printf("... ReportStatus, CheckReportStatus report: %+v err:%+v \n", report, err)
+		//if err != nil {
+		//	log.Errorf("GetReportStatus err:%+v", err)
+		//	continue
+		//}
+		//
 		now := time.Now()
-		if now.Sub(startTime) < 2*time.Hour {
+		if now.Sub(startTime) < time.Minute {
 			continue
 		}
 
-		nowUnixMod := now.Unix() % 86400
-		// report only 1 hour every, and must after 10 hour.
-		if nowUnixMod > report.ReportStatusSeconds &&
-			nowUnixMod < report.ReportStatusSeconds+3600 &&
-			now.Sub(report.LastReportTime) > 10*time.Hour {
-
-			err = serv.CheckReportStatus()
-			if err != nil {
-				log.Errorf("CheckReportStatus err:%+v", err)
-				continue
-			}
+		err := serv.CheckReportStatus()
+		if err != nil {
+			log.Errorf("CheckReportStatus err:%+v", err)
+			continue
 		}
 	}
 }
