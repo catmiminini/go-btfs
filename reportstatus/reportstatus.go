@@ -265,7 +265,7 @@ func cycleCheckReport() {
 			continue
 		}
 
-		err := serv.CheckReportStatus()
+		err = serv.CheckReportStatus()
 		if err != nil {
 			log.Errorf("CheckReportStatus err:%+v", err)
 			continue
