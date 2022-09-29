@@ -29,8 +29,7 @@ var (
 )
 
 const (
-	ReportStatusTime = 1 * time.Minute
-	//ReportStatusTime = 60 * time.Second // 10 * time.Minute
+	ReportStatusTime = 60 * time.Minute
 )
 
 func Init(transactionService transaction.Service, cfg *config.Config, statusAddress common.Address) Service {
@@ -114,7 +113,7 @@ func (s *service) ReportStatus() (common.Hash, error) {
 	if err != nil {
 		return common.Hash{}, err
 	}
-	fmt.Println("... ReportStatus over, txHash, err = ", txHash, err)
+	fmt.Println("... ReportStatus send, txHash, err = ", txHash, err)
 
 	// 3.wait for receipt, until ok or timeout
 	stx, err := s.transactionService.WaitForReceipt(ctx, txHash)
@@ -123,7 +122,8 @@ func (s *service) ReportStatus() (common.Hash, error) {
 	}
 	gasPrice := getGasPrice(request)
 	gasTotal := big.NewInt(1).Mul(gasPrice, big.NewInt(int64(stx.GasUsed)))
-	fmt.Println("... ReportStatus, gasPrice, stx.GasUsed, gasTotal = ", gasPrice.String(), stx.GasUsed, gasTotal.String())
+	//fmt.Println("... ReportStatus, gasPrice, stx.GasUsed, gasTotal = ", gasPrice.String(), stx.GasUsed, gasTotal.String())
+	fmt.Println("... ReportStatus wait over, ", gasTotal)
 
 	// 4.set last report time
 	now := time.Now()
@@ -131,7 +131,7 @@ func (s *service) ReportStatus() (common.Hash, error) {
 	if err != nil {
 		return common.Hash{}, err
 	}
-	fmt.Println("... ReportStatus over, txHash, err = ", txHash, err)
+	fmt.Println("... ReportStatus set report over")
 
 	r := &chain.LevelDbReportStatusInfo{
 		Peer:           peer,
@@ -270,14 +270,14 @@ func cycleCheckReport() {
 		fmt.Println("... ReportStatus, Check ...")
 
 		report, err := chain.GetReportStatus()
-		fmt.Printf("... ReportStatus, CheckReportStatus report: %+v err:%+v \n", report, err)
-		//if err != nil {
-		//	log.Errorf("GetReportStatus err:%+v", err)
-		//	continue
-		//}
-		//
+		fmt.Printf("... ReportStatus, report config: %+v err:%+v \n", report, err)
+		if err != nil {
+			log.Errorf("GetReportStatus err:%+v", err)
+			continue
+		}
+
 		now := time.Now()
-		if now.Sub(startTime) < time.Second*15 {
+		if now.Sub(startTime) < time.Minute*1 {
 			continue
 		}
 
