@@ -15,6 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	onlinePb "github.com/tron-us/go-btfs-common/protos/online"
 
+	"github.com/cenkalti/backoff/v4"
 	logging "github.com/ipfs/go-log"
 )
 
@@ -72,6 +73,9 @@ func New(statusAddress common.Address, transactionService transaction.Service, c
 
 // ReportStatus report heart status
 func (s *service) ReportStatus() (common.Hash, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+
 	lastOnline, err := chain.GetLastOnline()
 	if err != nil {
 		return common.Hash{}, err
@@ -93,11 +97,11 @@ func (s *service) ReportStatus() (common.Hash, error) {
 	signature, err := hex.DecodeString(strings.Replace(lastOnline.LastSignature, "0x", "", -1))
 	fmt.Printf("... ReportStatus, lastOnline = %+v \n", lastOnline)
 
+	// 1.pack
 	callData, err := statusABI.Pack("reportStatus", peer, createTime, version, nonce, bttcAddress, signedTime, signature)
 	if err != nil {
 		return common.Hash{}, err
 	}
-
 	request := &transaction.TxRequest{
 		To:          &s.statusAddress,
 		Data:        callData,
@@ -105,26 +109,29 @@ func (s *service) ReportStatus() (common.Hash, error) {
 		Description: "Report Heart Status",
 	}
 
-	txHash, err := s.transactionService.Send(context.Background(), request)
+	// 2.send trans, until ok or timeout
+	txHash, err := s.transactionService.Send(ctx, request)
 	if err != nil {
 		return common.Hash{}, err
 	}
 	fmt.Println("... ReportStatus over, txHash, err = ", txHash, err)
 
-	now := time.Now()
-	_, err = chain.SetReportStatusOK()
-	if err != nil {
-		return common.Hash{}, err
-	}
-	fmt.Println("... ReportStatus over, txHash, err = ", txHash, err)
-
-	stx, err := s.transactionService.WaitForReceipt(context.Background(), txHash)
+	// 3.wait for receipt, until ok or timeout
+	stx, err := s.transactionService.WaitForReceipt(ctx, txHash)
 	if err != nil {
 		return common.Hash{}, err
 	}
 	gasPrice := getGasPrice(request)
 	gasTotal := big.NewInt(1).Mul(gasPrice, big.NewInt(int64(stx.GasUsed)))
 	fmt.Println("... ReportStatus, gasPrice, stx.GasUsed, gasTotal = ", gasPrice.String(), stx.GasUsed, gasTotal.String())
+
+	// 4.set last report time
+	now := time.Now()
+	_, err = chain.SetReportStatusOK()
+	if err != nil {
+		return common.Hash{}, err
+	}
+	fmt.Println("... ReportStatus over, txHash, err = ", txHash, err)
 
 	r := &chain.LevelDbReportStatusInfo{
 		Peer:           peer,
@@ -235,12 +242,20 @@ func (s *service) genHashExt(ctx context.Context) (common.Hash, error) {
 }
 
 func (s *service) CheckReportStatus() error {
-	_, err := s.ReportStatus()
-	if err != nil {
-		log.Errorf("ReportStatus err:%+v", err)
-		return err
-	}
-	return nil
+	var err error
+
+	bo := backoff.NewExponentialBackOff()
+	bo.MaxElapsedTime = 9 * time.Minute
+	backoff.Retry(func() error {
+		_, err = s.ReportStatus()
+		if err != nil {
+			log.Errorf("ReportStatus check, err:%+v", err)
+			return err
+		}
+		return nil
+	}, bo)
+
+	return err
 }
 
 func cycleCheckReport() {
@@ -250,6 +265,7 @@ func cycleCheckReport() {
 	// Force tick on immediate start
 	// CheckReport in the for loop
 	for ; true; <-tick.C {
+
 		fmt.Println("")
 		fmt.Println("... ReportStatus, Check ...")
 
