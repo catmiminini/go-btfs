@@ -260,7 +260,7 @@ func cycleCheckReport() {
 		//}
 		//
 		now := time.Now()
-		if now.Sub(startTime) < time.Minute {
+		if now.Sub(startTime) < time.Second*15 {
 			continue
 		}
 
