@@ -116,6 +116,7 @@ func (s *service) ReportStatus() (common.Hash, error) {
 	if err != nil {
 		return common.Hash{}, err
 	}
+	fmt.Println("... ReportStatus over, txHash, err = ", txHash, err)
 
 	stx, err := s.transactionService.WaitForReceipt(context.Background(), txHash)
 	if err != nil {
@@ -252,8 +253,8 @@ func cycleCheckReport() {
 		fmt.Println("")
 		fmt.Println("... ReportStatus, Check ...")
 
-		//report, err := chain.GetReportStatus()
-		////fmt.Printf("... ReportStatus, CheckReportStatus report: %+v err:%+v \n", report, err)
+		report, err := chain.GetReportStatus()
+		fmt.Printf("... ReportStatus, CheckReportStatus report: %+v err:%+v \n", report, err)
 		//if err != nil {
 		//	log.Errorf("GetReportStatus err:%+v", err)
 		//	continue
