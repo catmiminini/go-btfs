@@ -123,7 +123,7 @@ func (s *service) ReportStatus() (common.Hash, error) {
 	}
 	gasPrice := getGasPrice(request)
 	gasTotal := big.NewInt(1).Mul(gasPrice, big.NewInt(int64(stx.GasUsed)))
-	//fmt.Println("... ReportStatus, gasPrice, stx.GasUsed, gasTotal = ", gasPrice.String(), stx.GasUsed, gasTotal.String())
+	fmt.Println("... ReportStatus, gasPrice, stx.GasUsed, gasTotal = ", gasPrice.String(), stx.GasUsed, gasTotal.String())
 
 	r := &chain.LevelDbReportStatusInfo{
 		Peer:           peer,
