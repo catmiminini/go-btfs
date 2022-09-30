@@ -71,6 +71,8 @@ type Service interface {
 	OverlayEthAddress(ctx context.Context) (addr common.Address)
 	// Send creates a transaction based on the request and sends it.
 	Send(ctx context.Context, request *TxRequest) (txHash common.Hash, err error)
+	// Send creates a transaction based on the request and sends it.
+	GetReceiptByTxHash(ctx context.Context, txHash common.Hash) (r *types.Receipt, tx *types.Transaction, isPending bool, err error)
 	// Call simulate a transaction based on the request.
 	Call(ctx context.Context, request *TxRequest) (result []byte, err error)
 	// WaitForReceipt waits until either the transaction with the given hash has been mined or the context is cancelled.
@@ -152,32 +154,50 @@ func (t *transactionService) OverlayEthAddress(ctx context.Context) (addr common
 	return t.sender
 }
 
+func (t *transactionService) GetReceiptByTxHash(ctx context.Context, txHash common.Hash) (r *types.Receipt, tx *types.Transaction, isPending bool, err error) {
+	tx, isPending, err = t.backend.TransactionByHash(ctx, txHash)
+	if err != nil {
+		return
+	}
+
+	r, err = t.backend.TransactionReceipt(ctx, txHash)
+	return
+}
+
 // Send creates and signs a transaction based on the request and sends it.
 func (t *transactionService) Send(ctx context.Context, request *TxRequest) (txHash common.Hash, err error) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 
+	fmt.Printf("--- send request")
+
 	nonce, err := t.nextNonce(ctx)
 	if err != nil {
 		return common.Hash{}, err
 	}
+	fmt.Println("--- send nonce = ", nonce)
 
 	tx, err := prepareTransaction(ctx, request, t.sender, t.backend, nonce)
 	if err != nil {
 		return common.Hash{}, err
 	}
 
+	fmt.Printf("--- send tx = %+v \n", tx)
+
 	signedTx, err := t.signer.SignTx(tx, t.chainID)
 	if err != nil {
 		return common.Hash{}, err
 	}
 
+	fmt.Printf("--- send txHash = %x, nonce = %d \n", signedTx.Hash(), nonce)
 	logTran.Infof("sending transaction %x with nonce %d", signedTx.Hash(), nonce)
 
 	err = t.backend.SendTransaction(ctx, signedTx)
 	if err != nil {
 		return common.Hash{}, err
 	}
+
+	fmt.Printf("--- send SendTransaction ok")
 
 	err = t.putNonce(nonce + 1)
 	if err != nil {
@@ -206,6 +226,8 @@ func (t *transactionService) Send(ctx context.Context, request *TxRequest) (txHa
 	}
 
 	t.waitForPendingTx(txHash)
+
+	fmt.Printf("--- send waitForPendingTx ok \n")
 
 	return signedTx.Hash(), nil
 }
@@ -330,7 +352,6 @@ func (t *transactionService) nextNonce(ctx context.Context) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
-
 	var nonce uint64
 	err = t.store.Get(t.nonceKey(), &nonce)
 	if err != nil {
@@ -340,6 +361,8 @@ func (t *transactionService) nextNonce(ctx context.Context) (uint64, error) {
 		}
 		return 0, err
 	}
+
+	fmt.Println("onchainNonce, nonce = ", onchainNonce, nonce)
 
 	// If the nonce onchain is larger than what we have there were external
 	// transactions and we need to update our nonce.

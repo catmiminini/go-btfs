@@ -3,6 +3,7 @@ package reportstatus
 import (
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
@@ -118,8 +119,20 @@ func (s *service) ReportStatus() (common.Hash, error) {
 	// 3.wait for receipt, until ok or timeout
 	stx, err := s.transactionService.WaitForReceipt(ctx, txHash)
 	if err != nil {
+		r, tx, isPending, err1 := s.transactionService.GetReceiptByTxHash(ctx, txHash)
+		if err1 != nil {
+			fmt.Println("... GetReceiptByTxHash, err1 = ", err1)
+		} else {
+			txs, e := json.MarshalIndent(tx, "", "  ")
+			fmt.Printf("*** isPending = %v, e=%v, txs = %s \n", isPending, e, txs)
+
+			rs, e := json.MarshalIndent(r, "", "  ")
+			fmt.Printf("*** e = %v, rs = %s \n", e, rs)
+		}
+
 		return common.Hash{}, err
 	}
+
 	gasPrice := getGasPrice(request)
 	gasTotal := big.NewInt(1).Mul(gasPrice, big.NewInt(int64(stx.GasUsed)))
 	//fmt.Println("... ReportStatus, gasPrice, stx.GasUsed, gasTotal = ", gasPrice.String(), stx.GasUsed, gasTotal.String())
