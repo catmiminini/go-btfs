@@ -157,6 +157,7 @@ func (t *transactionService) OverlayEthAddress(ctx context.Context) (addr common
 func (t *transactionService) GetReceiptByTxHash(ctx context.Context, txHash common.Hash) (r *types.Receipt, tx *types.Transaction, isPending bool, err error) {
 	tx, isPending, err = t.backend.TransactionByHash(ctx, txHash)
 	if err != nil {
+		fmt.Println("... tx, isPending, err = ", tx, isPending, err)
 		return
 	}
 
@@ -199,10 +200,10 @@ func (t *transactionService) Send(ctx context.Context, request *TxRequest) (txHa
 
 	fmt.Printf("--- send SendTransaction ok")
 
-	err = t.putNonce(nonce + 1)
-	if err != nil {
-		return common.Hash{}, err
-	}
+	//err = t.putNonce(nonce + 1)
+	//if err != nil {
+	//	return common.Hash{}, err
+	//}
 
 	txHash = signedTx.Hash()
 
@@ -352,24 +353,27 @@ func (t *transactionService) nextNonce(ctx context.Context) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
-	var nonce uint64
-	err = t.store.Get(t.nonceKey(), &nonce)
-	if err != nil {
-		// If no nonce was found locally used whatever we get from the backend.
-		if errors.Is(err, storage.ErrNotFound) {
-			return onchainNonce, nil
-		}
-		return 0, err
-	}
 
-	fmt.Println("onchainNonce, nonce = ", onchainNonce, nonce)
+	return onchainNonce, nil
 
-	// If the nonce onchain is larger than what we have there were external
-	// transactions and we need to update our nonce.
-	if onchainNonce > nonce {
-		return onchainNonce, nil
-	}
-	return nonce, nil
+	//var nonce uint64
+	//err = t.store.Get(t.nonceKey(), &nonce)
+	//if err != nil {
+	//	// If no nonce was found locally used whatever we get from the backend.
+	//	if errors.Is(err, storage.ErrNotFound) {
+	//		return onchainNonce, nil
+	//	}
+	//	return 0, err
+	//}
+	//
+	//fmt.Println("onchainNonce, nonce = ", onchainNonce, nonce)
+	//
+	//// If the nonce onchain is larger than what we have there were external
+	//// transactions and we need to update our nonce.
+	//if onchainNonce > nonce {
+	//	return onchainNonce, nil
+	//}
+	//return nonce, nil
 }
 
 func (t *transactionService) putNonce(nonce uint64) error {
