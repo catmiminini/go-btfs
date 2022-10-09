@@ -170,7 +170,7 @@ func (t *transactionService) Send(ctx context.Context, request *TxRequest) (txHa
 	t.lock.Lock()
 	defer t.lock.Unlock()
 
-	fmt.Printf("--- send request")
+	fmt.Printf("--- send request 22")
 
 	nonce, err := t.nextNonce(ctx)
 	if err != nil {
@@ -198,7 +198,7 @@ func (t *transactionService) Send(ctx context.Context, request *TxRequest) (txHa
 		return common.Hash{}, err
 	}
 
-	fmt.Printf("--- send SendTransaction ok")
+	fmt.Printf("--- send SendTransaction ok 222")
 
 	//err = t.putNonce(nonce + 1)
 	//if err != nil {
