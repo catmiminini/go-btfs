@@ -151,6 +151,8 @@ func waitUpload(rss *sessions.RenterSession, offlineSigning bool, fsStatus *guar
 	}()
 	err = <-errC
 	if err != nil {
+		return err
+
 		if fsmErr := rss.To(sessions.RssToErrorEvent); fsmErr != nil {
 			log.Errorf("fsm transfer error:%v", fsmErr)
 		}
