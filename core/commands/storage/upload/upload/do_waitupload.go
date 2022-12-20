@@ -145,16 +145,13 @@ func waitUpload(rss *sessions.RenterSession, offlineSigning bool, fsStatus *guar
 		}()
 		if err != nil {
 			fmt.Println("payInCheque error:", err)
+		} else {
+			fmt.Println("payInCheque done")
 		}
-		fmt.Println("payInCheque done")
 		errC <- err
 	}()
 	err = <-errC
 	if err != nil {
-		if fsmErr := rss.To(sessions.RssToErrorEvent); fsmErr != nil {
-			log.Errorf("fsm transfer error:%v", fsmErr)
-		}
-		log.Errorf("payInCheque error:%v", err)
 		return err
 	}
 	// Complete
