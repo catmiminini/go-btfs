@@ -3,11 +3,9 @@ package main
 import (
 	"context"
 	"encoding/base64"
-	"encoding/hex"
 	"errors"
 	_ "expvar"
 	"fmt"
-	"github.com/bittorrent/go-btfs/guide"
 	"io/ioutil"
 	"math/rand"
 	"net"
@@ -394,16 +392,16 @@ If the user need to start multiple nodes on the same machine, the configuration 
 	fmt.Println("the address of Tron format is: ", keys.Base58Address)
 
 	// guide server init
-	optionApiAddr, _ := req.Options[commands.ApiOption].(string)
-	guide.SetServerAddr(cfg.Addresses.API, optionApiAddr)
-	guide.SetInfo(&guide.Info{
-		BtfsVersion: version.CurrentVersionNumber,
-		HostID:      cfg.Identity.PeerID,
-		BttcAddress: address0x.String(),
-		PrivateKey:  hex.EncodeToString(pkbytesOri[4:]),
-	})
-	guide.StartServer()
-	defer guide.TryShutdownServer()
+	//optionApiAddr, _ := req.Options[commands.ApiOption].(string)
+	//guide.SetServerAddr(cfg.Addresses.API, optionApiAddr)
+	//guide.SetInfo(&guide.Info{
+	//	BtfsVersion: version.CurrentVersionNumber,
+	//	HostID:      cfg.Identity.PeerID,
+	//	BttcAddress: address0x.String(),
+	//	PrivateKey:  hex.EncodeToString(pkbytesOri[4:]),
+	//})
+	//guide.StartServer()
+	//defer guide.TryShutdownServer()
 
 	//chain init
 	configRoot := cctx.ConfigRoot
@@ -645,7 +643,7 @@ If the user need to start multiple nodes on the same machine, the configuration 
 	node.Process.AddChild(goprocess.WithTeardown(cctx.Plugins.Close))
 
 	// if the guide server was started, shutdown it
-	guide.TryShutdownServer()
+	//guide.TryShutdownServer()
 
 	// construct api endpoint - every time
 	apiErrc, err := serveHTTPApi(req, cctx)
