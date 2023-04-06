@@ -7,7 +7,7 @@ import (
 	"errors"
 	_ "expvar"
 	"fmt"
-	"github.com/bittorrent/go-btfs/chain/tokencfg"
+	"github.com/bittorrent/go-btfs/guide"
 	"io/ioutil"
 	"math/rand"
 	"net"
@@ -20,9 +20,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
-
-	"github.com/bittorrent/go-btfs/guide"
 
 	config "github.com/TRON-US/go-btfs-config"
 	cserial "github.com/TRON-US/go-btfs-config/serialize"
@@ -48,7 +45,6 @@ import (
 	"github.com/bittorrent/go-btfs/reportstatus"
 	"github.com/bittorrent/go-btfs/settlement/swap/vault"
 	"github.com/bittorrent/go-btfs/spin"
-	"github.com/bittorrent/go-btfs/transaction"
 	"github.com/bittorrent/go-btfs/transaction/crypto"
 	"github.com/bittorrent/go-btfs/transaction/storage"
 	"github.com/ethereum/go-ethereum/common"
@@ -420,114 +416,114 @@ If the user need to start multiple nodes on the same machine, the configuration 
 		statestore.Close()
 	}()
 
-	chainid, stored, err := getChainID(req, cfg, statestore)
-	if err != nil {
-		return err
-	}
-	chainCfg, err := chainconfig.InitChainConfig(cfg, stored, chainid)
-	if err != nil {
-		return err
-	}
+	//chainid, stored, err := getChainID(req, cfg, statestore)
+	//if err != nil {
+	//	return err
+	//}
+	//chainCfg, err := chainconfig.InitChainConfig(cfg, stored, chainid)
+	//if err != nil {
+	//	return err
+	//}
 
-	// upgrade factory to v2 if necessary
-	needUpdateFactory := false
-	needUpdateFactory, err = doIfNeedUpgradeFactoryToV2(chainid, chainCfg, statestore, repo, cfg, configRoot)
-	if err != nil {
-		fmt.Printf("upgrade vault contract failed, err=%s\n", err)
-		return err
-	}
-	if needUpdateFactory { // no error means upgrade preparation done, re-init the statestore
-		statestore, err = chain.InitStateStore(configRoot)
-		if err != nil {
-			fmt.Println("init statestore err: ", err)
-			return err
-		}
-		err = chain.StoreChainIdIfNotExists(chainid, statestore)
-		if err != nil {
-			fmt.Printf("save chainid failed, err: %s\n", err)
-			return
-		}
-	}
+	//// upgrade factory to v2 if necessary
+	//needUpdateFactory := false
+	//needUpdateFactory, err = doIfNeedUpgradeFactoryToV2(chainid, chainCfg, statestore, repo, cfg, configRoot)
+	//if err != nil {
+	//	fmt.Printf("upgrade vault contract failed, err=%s\n", err)
+	//	return err
+	//}
+	//if needUpdateFactory { // no error means upgrade preparation done, re-init the statestore
+	//	statestore, err = chain.InitStateStore(configRoot)
+	//	if err != nil {
+	//		fmt.Println("init statestore err: ", err)
+	//		return err
+	//	}
+	//	err = chain.StoreChainIdIfNotExists(chainid, statestore)
+	//	if err != nil {
+	//		fmt.Printf("save chainid failed, err: %s\n", err)
+	//		return
+	//	}
+	//}
 
-	tokencfg.InitToken(chainid)
+	//tokencfg.InitToken(chainid)
 
-	//endpoint
-	chainInfo, err := chain.InitChain(context.Background(), statestore, singer, time.Duration(1000000000),
-		chainid, cfg.Identity.PeerID, chainCfg)
-	if err != nil {
-		return err
-	}
+	////endpoint
+	//chainInfo, err := chain.InitChain(context.Background(), statestore, singer, time.Duration(1000000000),
+	//	chainid, cfg.Identity.PeerID, chainCfg)
+	//if err != nil {
+	//	return err
+	//}
 
-	// Sync the with the given Ethereum backend:
-	isSynced, _, err := transaction.IsSynced(context.Background(), chainInfo.Backend, chain.MaxDelay)
-	if err != nil {
-		return fmt.Errorf("is synced: %w", err)
-	}
+	//// Sync the with the given Ethereum backend:
+	//isSynced, _, err := transaction.IsSynced(context.Background(), chainInfo.Backend, chain.MaxDelay)
+	//if err != nil {
+	//	return fmt.Errorf("is synced: %w", err)
+	//}
 
-	if !isSynced {
-		log.Infof("waiting to sync with the Ethereum backend")
+	//if !isSynced {
+	//	log.Infof("waiting to sync with the Ethereum backend")
 
-		err := transaction.WaitSynced(context.Background(), chainInfo.Backend, chain.MaxDelay)
-		if err != nil {
-			return fmt.Errorf("waiting backend sync: %w", err)
-		}
-	}
+	//	err := transaction.WaitSynced(context.Background(), chainInfo.Backend, chain.MaxDelay)
+	//	if err != nil {
+	//		return fmt.Errorf("waiting backend sync: %w", err)
+	//	}
+	//}
 
-	deployGasPrice, found := req.Options[deploymentGasPrice].(string)
-	if !found {
-		deployGasPrice = chainInfo.Chainconfig.DeploymentGas
-	}
+	//deployGasPrice, found := req.Options[deploymentGasPrice].(string)
+	//if !found {
+	//	deployGasPrice = chainInfo.Chainconfig.DeploymentGas
+	//}
 
-	/*settleinfo*/
-	settleInfo, err := chain.InitSettlement(context.Background(), statestore, chainInfo, deployGasPrice, chainInfo.ChainID)
-	if err != nil {
-		fmt.Println("init settlement err: ", err)
-		if strings.Contains(err.Error(), "insufficient funds") {
-			fmt.Println("Please recharge BTT to your address to solve this error")
-		}
-		if strings.Contains(err.Error(), "contract deployment failed") {
-			fmt.Println(`Solution1: It is recommended to check if the balance is sufficient. If the balance is low, it is recommended to top up.`)
-			fmt.Println(`Solution2: Suggest to redeploy.`)
-		}
+	///*settleinfo*/
+	//settleInfo, err := chain.InitSettlement(context.Background(), statestore, chainInfo, deployGasPrice, chainInfo.ChainID)
+	//if err != nil {
+	//	fmt.Println("init settlement err: ", err)
+	//	if strings.Contains(err.Error(), "insufficient funds") {
+	//		fmt.Println("Please recharge BTT to your address to solve this error")
+	//	}
+	//	if strings.Contains(err.Error(), "contract deployment failed") {
+	//		fmt.Println(`Solution1: It is recommended to check if the balance is sufficient. If the balance is low, it is recommended to top up.`)
+	//		fmt.Println(`Solution2: Suggest to redeploy.`)
+	//	}
 
-		return err
-	}
+	//	return err
+	//}
 
-	/*upgrade vault implementation*/
-	oldImpl, newImpl, err := settleInfo.VaultService.UpgradeTo(context.Background(), chainInfo.Chainconfig.VaultLogicAddress)
-	if err != nil {
-		emsg := err.Error()
-		if strings.Contains(emsg, "already upgraded") {
-			fmt.Printf("vault implementation is updated: %s\n", chainInfo.Chainconfig.VaultLogicAddress)
-			err = nil
-		} else {
-			fmt.Println("upgrade vault implementation err: ", err)
-			return err
-		}
-	} else {
-		fmt.Printf("vault logic implementation upgrade from %s to %s\n", oldImpl, newImpl)
-	}
+	///*upgrade vault implementation*/
+	//oldImpl, newImpl, err := settleInfo.VaultService.UpgradeTo(context.Background(), chainInfo.Chainconfig.VaultLogicAddress)
+	//if err != nil {
+	//	emsg := err.Error()
+	//	if strings.Contains(emsg, "already upgraded") {
+	//		fmt.Printf("vault implementation is updated: %s\n", chainInfo.Chainconfig.VaultLogicAddress)
+	//		err = nil
+	//	} else {
+	//		fmt.Println("upgrade vault implementation err: ", err)
+	//		return err
+	//	}
+	//} else {
+	//	fmt.Printf("vault logic implementation upgrade from %s to %s\n", oldImpl, newImpl)
+	//}
 
-	// init report status contract
-	//reportStatusServ := reportstatus.Init(chainInfo.TransactionService, cfg, chainCfg.StatusAddress)
-	//err = CheckExistLastOnlineReport(cfg, configRoot, chainid, reportStatusServ)
+	//// init report status contract
+	////reportStatusServ := reportstatus.Init(chainInfo.TransactionService, cfg, chainCfg.StatusAddress)
+	////err = CheckExistLastOnlineReport(cfg, configRoot, chainid, reportStatusServ)
+	////if err != nil {
+	////	fmt.Println("check report status, err: ", err)
+	////	return err
+	////}
+
+	//// init report online info
+	//err = CheckExistLastOnlineReportV2(cfg, configRoot, chainid)
 	//if err != nil {
 	//	fmt.Println("check report status, err: ", err)
 	//	return err
 	//}
 
-	// init report online info
-	err = CheckExistLastOnlineReportV2(cfg, configRoot, chainid)
-	if err != nil {
-		fmt.Println("check report status, err: ", err)
-		return err
-	}
-
-	err = CheckHubDomainConfig(cfg, configRoot, chainid)
-	if err != nil {
-		fmt.Println("check report status, err: ", err)
-		return err
-	}
+	//err = CheckHubDomainConfig(cfg, configRoot, chainid)
+	//if err != nil {
+	//	fmt.Println("check report status, err: ", err)
+	//	return err
+	//}
 
 	// init ip2location db
 	if err := bindata.Init(); err != nil {
