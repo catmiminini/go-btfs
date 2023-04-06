@@ -80,11 +80,11 @@ func createDefaultLimitConfig(cfg config.SwarmConfig) (rcmgr.LimitConfig, error)
 			FDFraction: rcmgr.DefaultLimits.SystemLimitIncrease.FDFraction,
 
 			Conns:         0,
-			ConnsInbound:  rcmgr.DefaultLimits.SystemLimitIncrease.ConnsInbound,
+			ConnsInbound:  256,
 			ConnsOutbound: 0,
 
 			Streams:         0,
-			StreamsInbound:  rcmgr.DefaultLimits.SystemLimitIncrease.StreamsInbound,
+			StreamsInbound:  256 * 16,
 			StreamsOutbound: 0,
 		},
 
