@@ -32,7 +32,7 @@ var UserAgent = simpleOpt(libp2p.UserAgent(version.UserAgent))
 
 func ConnectionManager(low, high int, grace time.Duration) func() (opts Libp2pOpts, err error) {
 	return func() (opts Libp2pOpts, err error) {
-		cm, err := connmgr.NewConnManager(low, high, connmgr.WithGracePeriod(grace))
+		cm, err := connmgr.NewConnManager(low, high, connmgr.WithGracePeriod(grace), connmgr.WithSilencePeriod(5*time.Second), connmgr.WithEmergencyTrim(true))
 		if err != nil {
 			return opts, err
 		}
