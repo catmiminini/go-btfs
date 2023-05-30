@@ -7,18 +7,18 @@ import (
 	"os"
 	"time"
 
-	"github.com/bittorrent/go-btfs/core/node/libp2p"
-	"github.com/bittorrent/go-btfs/p2p"
-	"github.com/tron-us/go-btfs-common/crypto"
-
 	config "github.com/TRON-US/go-btfs-config"
 	uio "github.com/TRON-US/go-unixfs/io"
+	"github.com/bittorrent/go-btfs/core/node/libp2p"
+	"github.com/bittorrent/go-btfs/p2p"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	offline "github.com/ipfs/go-ipfs-exchange-offline"
 	util "github.com/ipfs/go-ipfs-util"
 	log "github.com/ipfs/go-log"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	peer "github.com/libp2p/go-libp2p/core/peer"
+	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
+	"github.com/tron-us/go-btfs-common/crypto"
 	"go.uber.org/fx"
 )
 
@@ -36,7 +36,7 @@ var BaseLibP2P = fx.Options(
 	fx.Invoke(libp2p.PNetChecker),
 )
 
-func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
+func LibP2P(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.PartialLimitConfig) fx.Option {
 	// parse ConnMgr config
 	var connmgr fx.Option
 
@@ -133,7 +133,7 @@ func LibP2P(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 	opts := fx.Options(
 		BaseLibP2P,
 
-		fx.Provide(libp2p.ResourceManager(cfg.Swarm)),
+		fx.Provide(libp2p.ResourceManager(cfg.Swarm, userResourceOverrides)),
 		fx.Provide(libp2p.AddrFilters(cfg.Swarm.AddrFilters)),
 		fx.Provide(libp2p.AddrsFactory(cfg.Addresses.Announce, cfg.Addresses.NoAnnounce)),
 		fx.Provide(libp2p.SmuxTransport(cfg.Swarm.Transports)),
@@ -248,7 +248,7 @@ var IPNS = fx.Options(
 )
 
 // Online groups online-only units
-func Online(bcfg *BuildCfg, cfg *config.Config) fx.Option {
+func Online(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.PartialLimitConfig) fx.Option {
 
 	// Namesys params
 
@@ -301,7 +301,7 @@ func Online(bcfg *BuildCfg, cfg *config.Config) fx.Option {
 
 		fx.Provide(p2p.New),
 
-		LibP2P(bcfg, cfg),
+		LibP2P(bcfg, cfg, userResourceOverrides),
 		OnlineProviders(
 			cfg.Experimental.StrategicProviding,
 			cfg.Experimental.AcceleratedDHTClient,
@@ -338,9 +338,9 @@ var Core = fx.Options(
 	fx.Provide(Files),
 )
 
-func Networked(bcfg *BuildCfg, cfg *config.Config) fx.Option {
+func Networked(bcfg *BuildCfg, cfg *config.Config, userResourceOverrides rcmgr.PartialLimitConfig) fx.Option {
 	if bcfg.Online {
-		return Online(bcfg, cfg)
+		return Online(bcfg, cfg, userResourceOverrides)
 	}
 	return Offline(cfg)
 }
@@ -355,7 +355,10 @@ func IPFS(ctx context.Context, bcfg *BuildCfg) fx.Option {
 	if cfg == nil {
 		return bcfgOpts // error
 	}
-
+	userResourceOverrides, err := bcfg.Repo.UserResourceOverrides()
+	if err != nil {
+		return fx.Error(err)
+	}
 	// TEMP: setting global sharding switch here
 	uio.UseHAMTSharding = cfg.Experimental.ShardingEnabled
 
@@ -367,7 +370,7 @@ func IPFS(ctx context.Context, bcfg *BuildCfg) fx.Option {
 		Storage(bcfg, cfg),
 		Identity(cfg),
 		IPNS,
-		Networked(bcfg, cfg),
+		Networked(bcfg, cfg, userResourceOverrides),
 
 		Core,
 	)

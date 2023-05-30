@@ -16,6 +16,7 @@ import (
 	"github.com/bittorrent/go-btfs/repo/common"
 	mfsr "github.com/bittorrent/go-btfs/repo/fsrepo/migrations"
 	dir "github.com/bittorrent/go-btfs/thirdparty/dir"
+	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 
 	config "github.com/TRON-US/go-btfs-config"
 	serialize "github.com/TRON-US/go-btfs-config/serialize"
@@ -98,11 +99,12 @@ type FSRepo struct {
 	path string
 	// lockfile is the file system lock to prevent others from opening
 	// the same fsrepo path concurrently
-	lockfile io.Closer
-	config   *config.Config
-	ds       repo.Datastore
-	keystore keystore.Keystore
-	filemgr  *filestore.FileManager
+	lockfile              io.Closer
+	config                *config.Config
+	userResourceOverrides rcmgr.PartialLimitConfig
+	ds                    repo.Datastore
+	keystore              keystore.Keystore
+	filemgr               *filestore.FileManager
 }
 
 var _ repo.Repo = (*FSRepo)(nil)
@@ -511,6 +513,21 @@ func (r *FSRepo) Config() (*config.Config, error) {
 		return nil, errors.New("cannot access config, repo not open")
 	}
 	return r.config, nil
+}
+
+func (r *FSRepo) UserResourceOverrides() (rcmgr.PartialLimitConfig, error) {
+	// It is not necessary to hold the package lock since the repo is in an
+	// opened state. The package lock is _not_ meant to ensure that the repo is
+	// thread-safe. The package lock is only meant to guard against removal and
+	// coordinate the lockfile. However, we provide thread-safety to keep
+	// things simple.
+	packageLock.Lock()
+	defer packageLock.Unlock()
+
+	if r.closed {
+		return rcmgr.PartialLimitConfig{}, errors.New("cannot access config, repo not open")
+	}
+	return r.userResourceOverrides, nil
 }
 
 func (r *FSRepo) FileManager() *filestore.FileManager {

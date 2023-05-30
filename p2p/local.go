@@ -52,7 +52,7 @@ func (p2p *P2P) ForwardLocal(ctx context.Context, peer peer.ID, proto protocol.I
 }
 
 func (l *localListener) dial(ctx context.Context) (net.Stream, error) {
-	cctx, cancel := context.WithTimeout(ctx, time.Second*30) //TODO: configurable?
+	cctx, cancel := context.WithTimeout(ctx, time.Second*30) // TODO: configurable?
 	defer cancel()
 
 	return l.p2p.peerHost.NewStream(cctx, l.peer, l.proto)
@@ -116,6 +116,6 @@ func (l *localListener) TargetAddress() ma.Multiaddr {
 	return addr
 }
 
-func (l *localListener) key() string {
-	return l.ListenAddress().String()
+func (l *localListener) key() protocol.ID {
+	return protocol.ID(l.ListenAddress().String())
 }
